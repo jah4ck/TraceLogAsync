@@ -19,6 +19,7 @@ namespace TraceLogAsync
         private static string logFile = ConfigurationManager.AppSettings["logFile"];//ajouter dans conf
         private static int maxLogAge = int.Parse(ConfigurationManager.AppSettings["maxLogAge"]);//age en seconde (toutes les x seconde on met à jour les log)
         private static int queueSize = int.Parse(ConfigurationManager.AppSettings["queueSize"]);//nombre dans queue (toutes les x ligne on met a jour les log)
+        private static string CodeAppli = ConfigurationManager.AppSettings["CodeAppli"];
         private static DateTime LastFlushed = DateTime.Now;
 
         
@@ -49,14 +50,14 @@ namespace TraceLogAsync
         }
 
         
-        public void WriteToLog(string message)
+        public void WriteToLog(string message, int codeErreur )
         {
            
             
             lock (logQueue)
             {
                 
-                Log logEntry = new Log(message);
+                Log logEntry = new Log(message, codeErreur);
                 logQueue.Enqueue(logEntry);
 
                 
@@ -94,7 +95,14 @@ namespace TraceLogAsync
                     while (logQueue.Count > 0)
                     {
                         Log entry = logQueue.Dequeue();
-                        log.WriteLine(string.Format("{0}\t{1}",entry.LogTime,entry.Message));
+                        if (entry.Erreur==2)
+                        {
+                            log.WriteLine(string.Format("{0}\t{1}\t{2}{3}",entry.LogTime,CodeAppli,"INFO : ",entry.Message));
+                        }
+                        else
+                        {
+                            log.WriteLine(string.Format("{0}\t{1}\t{2}{3}", entry.LogTime, CodeAppli, "ERREUR : ", entry.Message));
+                        }
                     }
                 }
             }
@@ -109,12 +117,14 @@ namespace TraceLogAsync
         public string Message { get; set; }
         public string LogTime { get; set; }
         public string LogDate { get; set; }
+        public int Erreur { get; set; }
 
-        public Log(string message)
+        public Log(string message, int codeErreur)
         {
             Message = message;
+            Erreur = codeErreur;
             LogDate = DateTime.Now.ToString("yyyy-MM-dd");
-            LogTime = DateTime.Now.ToString("HH:mm:ss.fff tt");
+            LogTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss tt");
         }
     }
 
